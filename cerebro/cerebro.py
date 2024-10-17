@@ -57,6 +57,13 @@ class State(rx.State):
     response: List[Dict[str, Any]] = [{"question": "", "choices": []}]
     current_question_index: int = 0
     quiz_generated: bool = False
+    selected_option: str = ""
+    # is_correct: bool = False
+    show_answer: bool = False
+
+    # for handling radio button option
+    def handle_selection(self, value: str):
+        self.selected_option = value
 
     def set_query(self, query: str):
         self.query = query
@@ -69,10 +76,16 @@ class State(rx.State):
     def next_question(self):
         if self.display_index < len(self.response):
             self.current_question_index += 1
+        self.show_answer = False
 
     def previous_question(self):
         if self.display_index > 1:
             self.current_question_index -= 1
+
+    def check_answer(self):
+        self.show_answer = True
+        # if State.selected_option == State.current_question["answer"]:
+        #     self.is_correct = True
 
     @rx.var
     def display_index(self) -> int:
@@ -153,6 +166,8 @@ def index() -> rx.Component:
                                 ),
                                 rx.radio(
                                     State.current_choices,
+                                    value=State.selected_option,
+                                    on_change=State.handle_selection,
                                     direction="column",
                                     spacing="2",
                                     size="2",
@@ -160,6 +175,21 @@ def index() -> rx.Component:
                                 class_name="p-4",
                             ),
                             class_name="border-2 border-black w-3/4 rounded-3xl",
+                        ),
+                        rx.button(
+                            "Check Answer",
+                            on_click=State.check_answer,
+                            class_name="mt-4 px-4 py-2 bg-gray-600 hover:bg-gray-800 text-white rounded-md",
+                        ),
+                        rx.cond(
+                            State.show_answer,
+                            rx.cond(
+                                State.selected_option
+                                == State.current_question["answer"],
+                                rx.text("correct"),
+                                rx.text("incorrect"),
+                            ),
+                            rx.text(""),
                         ),
                         rx.hstack(
                             rx.button(
