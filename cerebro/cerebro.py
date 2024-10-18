@@ -56,7 +56,7 @@ class State(rx.State):
     query: str = ""
     response: List[Dict[str, Any]] = [{"question": "", "choices": []}]
     current_question_index: int = 0
-    quiz_generated: bool = False
+    is_generating: bool = False
     selected_option: str = ""
     # is_correct: bool = False
     show_answer: bool = False
@@ -68,10 +68,14 @@ class State(rx.State):
     def set_query(self, query: str):
         self.query = query
 
+    def start_generation(self):
+        self.is_generating = True
+
     def handle_submit(self):
         self.response = generate_quiz_json(self.query)
         self.query = ""
-        self.quiz_generated = True
+        self.is_generating = False
+        return rx.redirect("/quiz")
 
     def next_question(self):
         if self.display_index < len(self.response):
@@ -142,68 +146,15 @@ def index() -> rx.Component:
                         ),
                         rx.button(
                             "Generate Quiz",
-                            on_click=State.handle_submit,
+                            on_click=[
+                                State.start_generation,
+                                State.handle_submit,
+                            ],
                             class_name="mt-4 px-4 py-2 bg-gray-600 hover:bg-gray-800 text-white rounded-md",
+                            loading=State.is_generating,
+                            disabled=State.is_generating,
                         ),
                         class_name="w-full flex items-center",
-                    ),
-                ),
-                rx.cond(
-                    State.quiz_generated,
-                    rx.vstack(
-                        rx.center(
-                            rx.text(
-                                State.display_index,
-                            ),
-                            rx.text("/10"),
-                        ),
-                        rx.box(
-                            rx.vstack(
-                                rx.text("Question", class_name="text-sm"),
-                                rx.card(
-                                    rx.text(State.current_question["question"]),
-                                    class_name="w-full text-sm bg-gray-400",
-                                ),
-                                rx.radio(
-                                    State.current_choices,
-                                    value=State.selected_option,
-                                    on_change=State.handle_selection,
-                                    direction="column",
-                                    spacing="2",
-                                    size="2",
-                                ),
-                                class_name="p-4",
-                            ),
-                            class_name="border-2 border-black w-3/4 rounded-3xl",
-                        ),
-                        rx.button(
-                            "Check Answer",
-                            on_click=State.check_answer,
-                            class_name="mt-4 px-4 py-2 bg-gray-600 hover:bg-gray-800 text-white rounded-md",
-                        ),
-                        rx.cond(
-                            State.show_answer,
-                            rx.cond(
-                                State.selected_option
-                                == State.current_question["answer"],
-                                rx.text("correct"),
-                                rx.text("incorrect"),
-                            ),
-                            rx.text(""),
-                        ),
-                        rx.hstack(
-                            rx.button(
-                                rx.icon("chevron-left", color="black"),
-                                variant="ghost",
-                                on_click=State.previous_question,
-                            ),
-                            rx.button(
-                                rx.icon("chevron-right", color="black"),
-                                variant="ghost",
-                                on_click=State.next_question,
-                            ),
-                        ),
-                        class_name="w-full mt-10 flex items-center justify-center",
                     ),
                 ),
                 class_name="w-full mt-10 flex items-center justify-center",
@@ -216,6 +167,71 @@ def index() -> rx.Component:
 @rx.page(route="tracker", title="tracker")
 def render_todo() -> rx.Component:
     return todo.todo()
+
+
+@rx.page(route="quiz", title="quiz")
+def render_quiz() -> rx.Component:
+    return rx.container(
+        rx.vstack(
+            rx.heading(
+                "Cerebro",
+                class_name="mb-20 text-6xl font-normal hover:cursor-pointer",
+                on_click=rx.redirect("/"),
+            ),
+            rx.center(
+                rx.text(
+                    State.display_index,
+                ),
+                rx.text("/10"),
+            ),
+            rx.box(
+                rx.vstack(
+                    rx.text("Question", class_name="text-sm"),
+                    rx.card(
+                        rx.text(State.current_question["question"]),
+                        class_name="w-full text-sm bg-gray-400",
+                    ),
+                    rx.radio(
+                        State.current_choices,
+                        value=State.selected_option,
+                        on_change=State.handle_selection,
+                        direction="column",
+                        spacing="2",
+                        size="2",
+                    ),
+                    class_name="p-4",
+                ),
+                class_name="border-2 border-black w-3/4 rounded-3xl",
+            ),
+            rx.button(
+                "Check Answer",
+                on_click=State.check_answer,
+                class_name="mt-4 px-4 py-2 bg-gray-600 hover:bg-gray-800 text-white rounded-md",
+            ),
+            rx.cond(
+                State.show_answer,
+                rx.cond(
+                    State.selected_option == State.current_question["answer"],
+                    rx.text("correct"),
+                    rx.text("incorrect"),
+                ),
+                rx.text(""),
+            ),
+            rx.hstack(
+                rx.button(
+                    rx.icon("chevron-left", color="black"),
+                    variant="ghost",
+                    on_click=State.previous_question,
+                ),
+                rx.button(
+                    rx.icon("chevron-right", color="black"),
+                    variant="ghost",
+                    on_click=State.next_question,
+                ),
+            ),
+            class_name="w-full mt-10 flex items-center justify-center",
+        ),
+    )
 
 
 style = {
