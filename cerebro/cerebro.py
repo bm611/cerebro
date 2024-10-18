@@ -19,10 +19,16 @@ model_json = genai.GenerativeModel(
 # model = genai.GenerativeModel("gemini-1.5-flash")
 
 
-def generate_quiz_json(user_question: str):
+def generate_quiz_json(user_question: str, difficulty: str, num_questions: str):
+    if num_questions == "":
+        num_questions = "10"
+
+    if difficulty == "":
+        difficulty = "default"
+
     SEARCH_PROMPT = f"""
     You are an expert at generating quiz based on a user prompt.
-    Generate 10 single choice quiz question about the topic provide below. the json should have question, choices and answer.
+    Generate {num_questions} single choice quiz question with {difficulty} difficulty about the topic provide below. the json should have question, choices and answer.
 
     json schema example:
       {{
@@ -62,6 +68,15 @@ class State(rx.State):
     # is_correct: bool = False
     show_answer: bool = False
 
+    difficulty: str = ""
+    num_questions: str = ""
+
+    def set_difficulty(self, difficulty: str):
+        self.difficulty = difficulty
+
+    def set_num_questions(self, num_questions: str):
+        self.num_questions = num_questions
+
     # for handling radio button option
     def handle_selection(self, value: str):
         self.show_answer = False
@@ -74,8 +89,12 @@ class State(rx.State):
         self.is_generating = True
 
     def handle_submit(self):
-        self.response = generate_quiz_json(self.query)
+        self.response = generate_quiz_json(
+            self.query, self.difficulty, self.num_questions
+        )
         self.query = ""
+        self.difficulty = ""
+        self.num_questions = ""
         self.is_generating = False
         return rx.redirect("/quiz")
 
@@ -90,8 +109,6 @@ class State(rx.State):
 
     def check_answer(self):
         self.show_answer = True
-        # if State.selected_option == State.current_question["answer"]:
-        #     self.is_correct = True
 
     @rx.var
     def display_index(self) -> int:
@@ -129,6 +146,22 @@ def index() -> rx.Component:
                     rx.segmented_control.item("By Prompt", value="prompt"),
                     on_change=SegmentedState.setvar("control"),
                     value=SegmentedState.control,
+                ),
+                rx.hstack(
+                    rx.select(
+                        ["Default", "Easy", "Medium", "Hard"],
+                        placeholder="Select Difficulty",
+                        on_change=State.set_difficulty,
+                        value=State.difficulty,
+                        class_name="w-1/2 mr-2",
+                    ),
+                    rx.select(
+                        ["5", "10", "15", "20"],
+                        placeholder="Select Num questions",
+                        on_change=State.set_num_questions,
+                        value=State.num_questions,
+                        class_name="w-1/2 ml-2",
+                    ),
                 ),
                 rx.cond(
                     SegmentedState.control == "file",
