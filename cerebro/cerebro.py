@@ -88,13 +88,18 @@ class State(rx.State):
     def start_generation(self):
         self.is_generating = True
 
+    def reset_vars(self):
+        self.current_question_index = 0
+        self.query = ""
+        self.difficulty = ""
+        self.num_questions = ""
+        self.show_answer = False
+        return rx.redirect("/")
+
     def handle_submit(self):
         self.response = generate_quiz_json(
             self.query, self.difficulty, self.num_questions
         )
-        self.query = ""
-        self.difficulty = ""
-        self.num_questions = ""
         self.is_generating = False
         return rx.redirect("/quiz")
 
@@ -211,7 +216,7 @@ def render_quiz() -> rx.Component:
             rx.heading(
                 "Cerebro",
                 class_name="mb-20 text-6xl text-black font-normal hover:cursor-pointer",
-                on_click=rx.redirect("/"),
+                on_click=State.reset_vars,
             ),
             rx.hstack(
                 rx.match(
