@@ -28,6 +28,7 @@ def generate_quiz_json(user_question: str):
       {{
          "quiz":[
             {{
+              "quiz_title" : "<generate title here..>",
                "difficulty":"easy",
                "question":"What is the basic unit of a neural network?",
                "choices":[
@@ -178,11 +179,44 @@ def render_quiz() -> rx.Component:
                 class_name="mb-20 text-6xl font-normal hover:cursor-pointer",
                 on_click=rx.redirect("/"),
             ),
-            rx.center(
+            rx.hstack(
+                rx.match(
+                    State.current_question["difficulty"],
+                    (
+                        "easy",
+                        rx.badge(
+                            "easy",
+                            color_scheme="grass",
+                            variant="outline",
+                            high_contrast=False,
+                        ),
+                    ),
+                    (
+                        "medium",
+                        rx.badge(
+                            "medium",
+                            color_scheme="yellow",
+                            variant="outline",
+                            high_contrast=False,
+                        ),
+                    ),
+                    (
+                        "hard",
+                        rx.badge(
+                            "hard",
+                            color_scheme="tomato",
+                            variant="outline",
+                            high_contrast=False,
+                        ),
+                    ),
+                ),
+                rx.text(State.current_question["quiz_title"]),
                 rx.text(
                     State.display_index,
+                    rx.text.strong("/10"),
+                    as_="span",
                 ),
-                rx.text("/10"),
+                class_name="w-3/4 justify-between items-center px-4",
             ),
             rx.box(
                 rx.vstack(
